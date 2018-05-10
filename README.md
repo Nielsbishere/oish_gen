@@ -71,5 +71,6 @@ for /D %%d in (*) do (
     cd %%d
     call :treeProcess
     cd ..
-)```
+)
+```
 This traverses all folders in the ocore root and finds all shader stages, which get recombined into a .oiSH file.
