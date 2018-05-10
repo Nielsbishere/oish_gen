@@ -2,9 +2,9 @@
 The compiler from SPIR-V to oiSH format. Converts it through SPIRV-CROSS shader reflection.
 ## Usage
 First, you have to generate your shader code through the Khronos SPIR-V compiler for Vulkan. Then, you need to run the script with the following parameters:
-oish_gen.exe "%FULL_PATH_TO_SHADER_BASE%" "%SHADER_NAME%" %SHADER_EXTENSIONS%
+`oish_gen.exe "%FULL_PATH_TO_SHADER_BASE%" "%SHADER_NAME%" %SHADER_EXTENSIONS%`
 This requires you to use the same names for a path, except you distinguish them by .vert, .geom, .frag and .comp extensions. An example would be the following:
-oish_gen.exe "D:\programming\repos\ocore\app\res\shaders\simple" "simple" .vert .frag
+`oish_gen.exe "D:\programming\repos\ocore\app\res\shaders\simple" "simple" .vert .frag`
 Which would require the files "simple.vert.spv" and "simple.frag.spv" to be available.
 ## Script in Osomi Graphics Core
 This is used in a script in Osomi Graphics Core to ensure that all shaders will be compiled into .oiSH format:
