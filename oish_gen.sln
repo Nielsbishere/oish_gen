@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oish_gen", "oish_gen\oish_gen.vcxproj", "{6447212E-59C7-43F7-94D7-FA6BCA3175AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6447212E-59C7-43F7-94D7-FA6BCA3175AA}.Debug|x64.ActiveCfg = Debug|x64
+		{6447212E-59C7-43F7-94D7-FA6BCA3175AA}.Debug|x64.Build.0 = Debug|x64
+		{6447212E-59C7-43F7-94D7-FA6BCA3175AA}.Release|x64.ActiveCfg = Release|x64
+		{6447212E-59C7-43F7-94D7-FA6BCA3175AA}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57BEC59E-6B51-4C19-80B6-E8A143EA7737}
+	EndGlobalSection
+EndGlobal
