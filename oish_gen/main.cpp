@@ -3,7 +3,6 @@
 #include <graphics/format/oish.h>
 #include <graphics/shader.h>
 #include <graphics/shaderstage.h>
-#include <file/filemanager.h>
 #include <graphics/graphics.h>
 
 #include <fstream>
@@ -73,6 +72,40 @@ Vec2u getBufferInfo(String &varName) {
 		return Vec2u((u32) start.toLong(), 0U);
 
 	return Vec2u(0, 0);
+}
+
+TextureFormat getFormat(SPIRType type) {
+
+	switch (type.basetype) {
+
+	case SPIRType::BaseType::Half:
+		return TextureFormat::R16f - (type.vecsize - 1);
+
+	case SPIRType::BaseType::Float:
+		return TextureFormat::R32f - (type.vecsize - 1);
+
+	case SPIRType::BaseType::UInt:
+		return TextureFormat::R32u - (type.vecsize - 1);
+
+	case SPIRType::BaseType::Int:
+		return TextureFormat::R32i - (type.vecsize - 1);
+
+	case SPIRType::BaseType::UInt64:
+		return TextureFormat::R64u - (type.vecsize - 1);
+
+	case SPIRType::BaseType::Double:
+		return TextureFormat::R64f - (type.vecsize - 1);
+
+	case SPIRType::BaseType::Boolean:
+	case SPIRType::BaseType::Char:
+		return TextureFormat::R32u;
+
+	default:
+		return TextureFormat::Undefined;
+
+	}
+
+
 }
 
 int main(int argc, char *argv[]) {
@@ -170,10 +203,10 @@ int main(int argc, char *argv[]) {
 				sec.perInstance = (bool) buf.y;
 
 				SPIRType type = comp.get_type_from_variable(r.id);
-				vars[i].type = TextureFormat::RGBA32f;// getFormat(type);
+				vars[i].type = getFormat(type);
 				u32 varSize = Graphics::getFormatSize(vars[i].type) * type.columns;
 				vars[i].offset = sec.stride;
-				vars[i].buffer = section.hash;	//Has to be replaced later
+				vars[i].buffer = section.hash;
 
 				sec.stride += varSize;
 
