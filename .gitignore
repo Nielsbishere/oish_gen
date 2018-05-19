@@ -32,3 +32,4 @@
 *.app
 .vs/
 oish_gen/x64/
+x64/

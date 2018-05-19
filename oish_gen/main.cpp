@@ -108,6 +108,63 @@ TextureFormat getFormat(SPIRType type) {
 
 }
 
+ShaderVBSection &insertSection(Vec2u buf, std::vector<ShaderVBSection> &sec) {
+
+	bool perInstance = (bool) buf.y;
+
+	if (sec.size() <= buf.x)
+		sec.resize(buf.x + 1U);
+
+	ShaderVBSection &sect = sec[buf.x];
+
+	if (sect.stride == 0)
+		sect.perInstance = perInstance;
+	
+	if (sect.perInstance != perInstance)
+		Log::throwError<ShaderVBSection, 0x0>("Couldn't be inserted; the type of a buffer section can't be changed to or from instance to or from attribute");
+
+	return sect;
+}
+
+void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObject &var) {
+
+	auto &type = comp.get_type(id);
+	
+	for (u32 i = 0; i < (u32)type.member_types.size(); ++i) {
+
+		ShaderBufferObject obj;
+
+		const SPIRType &mem = comp.get_type(type.member_types[i]);
+
+		obj.offset = (u32) comp.type_struct_member_offset(type, i);
+		obj.name = comp.get_member_name(id, i);
+
+		if (mem.basetype == SPIRType::Struct) {
+
+			u32 size = (u32)comp.get_declared_struct_member_size(mem, i);
+
+			obj.length = size;
+			obj.arraySize = 1U;
+			obj.format = TextureFormat::Undefined;
+
+			u32 objoff = (u32) info.elements.size();
+
+			info.push(obj, var);
+
+			fillStruct(comp, type.member_types[i], info, info.elements[objoff]);
+
+		} else {
+
+			obj.format = getFormat(mem);
+			obj.arraySize = mem.columns;
+			obj.length = Graphics::getFormatSize(obj.format);
+
+			info.push(obj, var);
+		}
+	}
+
+}
+
 int main(int argc, char *argv[]) {
 
 	String path, shaderName;
@@ -133,31 +190,33 @@ int main(int argc, char *argv[]) {
 	main:
 
 	ShaderInfo info;
-	std::vector<ShaderStageInfo> stageInfo(extensions.size());
+	info.path = shaderName;
+
+	std::vector<ShaderStageInfo> &stageInfo = info.stages;
+	stageInfo.resize(extensions.size());
 
 	std::vector<String> names = { shaderName };
 
-	u32 i = 0;
+	u32 j = 0;
 
 	//Open the extensions' spirv and parse their data
 	for (String &s : extensions) {
 
 		ShaderStageType type = pickExtension(s);
 
+		//Load debug spirv (with all variable names)
+
 		std::ifstream str((path + s + ".spv").toCString(), std::ios::binary);
 
-		if (!str.good()) return (int) Log::error("Couldn't open that file");
+		if (!str.good()) return (int)Log::error("Couldn't open that file");
 
-		u32 length = (u32) str.rdbuf()->pubseekoff(0, std::ios_base::end);
+		u32 length = (u32)str.rdbuf()->pubseekoff(0, std::ios_base::end);
 
 		Buffer b(length);
 		str.seekg(0, std::ios::beg);
 		str.read((char*)b.addr(), b.size());
 
 		str.close();
-
-		stageInfo[i] = { b, type };
-		++i;
 
 		if (b.size() % 4 != 0)
 			Log::throwError<VkNull, 0x0>("SPIRV bytecode incorrect");
@@ -174,77 +233,129 @@ int main(int argc, char *argv[]) {
 			std::vector<ShaderVBVar> &vars = info.var;
 			vars.resize(res.stage_inputs.size());
 
-			struct VBSection {
-
-				ShaderVBSection section;
-				u32 hash = u32_MAX;
-
-				bool operator<(const VBSection &sec) const { return hash < sec.hash; }
-			};
-
-			//The sections that will be filled with the variables
-			std::unordered_map<u32, VBSection> sections;
-
 			u32 i = 0;
+
+			std::vector<ShaderVBSection> &sections = info.section;
 
 			//Convert the inputs from Resource (res.stage_inputs) to ShaderVBVar and ShaderVBSection
 			for (Resource &r : res.stage_inputs) {
 
 				Vec2u buf = getBufferInfo(vars[i].name = r.name);
 
-				u32 hash = (buf.y << 31U) | (buf.x & 0x7FFFFFFFU);
-
-				VBSection &section = sections[hash];
-				ShaderVBSection &sec = section.section;
-
-				if (section.hash == u32_MAX)
-					section.hash = hash;
-
-				sec.perInstance = (bool) buf.y;
+				ShaderVBSection &section = insertSection(buf, sections);
 
 				SPIRType type = comp.get_type_from_variable(r.id);
 				vars[i].type = getFormat(type);
 				u32 varSize = Graphics::getFormatSize(vars[i].type) * type.columns;
-				vars[i].offset = sec.stride;
-				vars[i].buffer = section.hash;
+				vars[i].offset = section.stride;
+				vars[i].buffer = buf.x;
 
-				sec.stride += varSize;
+				section.stride += varSize;
 
 				vars[i].name = r.name;
 
 				++i;
 			}
-
-			//Collapse into vector and sort them
-			std::vector<std::pair<u32, VBSection>> elems(sections.begin(), sections.end());
-			std::sort(elems.begin(), elems.end());
-
-			i = 0;
-
-			//Fix indices (convert instance to attributes + instanceId)
-			for (auto &elem : elems) {
-				info.section.push_back(elem.second.section);
-
-				if ((elem.first & 0x80000000U) == 0)
-					++i;
-				else {
-					elem.first = i + (elem.first & 0x7FFFFFFFU);
-					for (auto &var : vars)
-						if (var.buffer == elem.second.hash)
-							var.buffer = elem.first;
-				}
-			}
-
-			//Sort variables
-			std::sort(vars.begin(), vars.end());
 		}
 
 		//Get the outputs
 		if (type == ShaderStageType::Fragment_shader) {
-			res.stage_outputs;
+
+			info.output.resize(res.stage_outputs.size());
+
+			u32 i = 0;
+			for (Resource &r : res.stage_outputs) {
+				info.output[i] = ShaderOutput(getFormat(comp.get_type_from_variable(r.id)), r.name, comp.get_decoration(r.id, spv::DecorationLocation));
+				++i;
+			}
+
 		}
+
+		//Get the registers
+
+		std::vector<Resource> buf = res.uniform_buffers;
+		buf.insert(buf.end(), res.storage_buffers.begin(), res.storage_buffers.end());
+
+		ShaderRegisterAccess stageAccess = type.getName().replace("_shader", "");
+
+		u32 i = 0;
+		for (Resource &r : buf) {
+
+			u32 binding = comp.get_decoration(r.id, spv::DecorationBinding);
+			
+			bool isUBO = i < res.uniform_buffers.size();
+
+			ShaderRegisterType stype = !isUBO ? 2U : 1U;
+
+			if(info.registers.size() <= binding)
+				info.registers.resize(binding + 1U);
+
+			ShaderRegister &reg = info.registers[binding];
+
+			if (reg.name == "") 
+				reg = ShaderRegister(stype, stageAccess, r.name);
+			else {
+
+				reg.access = reg.access.getValue() | stageAccess.getValue();
+
+				if (reg.access == ShaderRegisterAccess::Undefined)
+					return (int)Log::error("Invalid register access");
+			}
+
+			String name = String(r.name).replaceLast("_ext", "");
+
+			info.bufferIds[i] = name;
+			ShaderBufferInfo &dat = info.buffer[name];
+
+			const SPIRType &btype = comp.get_type(r.base_type_id);
+
+			dat.size = (u32) comp.get_declared_struct_size(btype);
+			dat.allocate = String(r.name).endsWithIgnoreCase("_ext");
+			dat.type = reg.type;
+
+			dat.self.arraySize = 1U;
+			dat.self.length = dat.size;
+			dat.self.format = TextureFormat::Undefined;
+			dat.self.name = name;
+			dat.self.offset = 0U;
+			dat.self.parent = nullptr;
+
+			fillStruct(comp, r.base_type_id, dat, dat.self);
+
+			++i;
+		}
+
+		b.deconstruct();
+
+		//Load optimized spirv
+
+		std::ifstream ospv((path + s + ".ospv").toCString(), std::ios::binary);
+
+		if (!ospv.good()) return (int) Log::error("Couldn't open that file");
+
+		length = (u32) ospv.rdbuf()->pubseekoff(0, std::ios_base::end);
+
+		b = Buffer(length);
+		ospv.seekg(0, std::ios::beg);
+		ospv.read((char*)b.addr(), b.size());
+		stageInfo[j] = { b, type };
+		ospv.close();
+
+		++j;
 	}
 
-	return (int) 1;
+	Buffer b = oiSH::write(oiSH::convert(info));
 
+	std::ofstream oish((path + ".oiSH").toCString(), std::ios::binary);
+
+	if (!oish.good()) return (int)Log::error("Couldn't open that file");
+	
+	oish.write((char*)b.addr(), b.size());
+	oish.close();
+
+	b.deconstruct();
+
+	Log::println(String("Successfully converted to ") + path + ".oiSH");
+
+	return 1U;
 }
