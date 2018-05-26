@@ -170,15 +170,6 @@ int main(int argc, char *argv[]) {
 	String path, shaderName;
 	std::vector<String> extensions;
 
-	#ifdef _DEBUG
-	if (argc == 1) {
-		path = "D:/programming/repos/OEC/app/res/shaders/simple";
-		shaderName = "simple";
-		extensions = { ".vert", ".frag" };
-		goto main;
-	}
-	#endif
-
 	if (argc < 4) return (int) Log::error("Incorrect usage: oish_gen.exe <pathToShader> <shaderName> [shaderStage extensions]");
 
 	path = argv[1];
@@ -186,8 +177,6 @@ int main(int argc, char *argv[]) {
 	
 	for (int i = 3; i < argc; ++i)
 		extensions.push_back(argv[i]);
-
-	main:
 
 	ShaderInfo info;
 	info.path = shaderName;
@@ -323,6 +312,49 @@ int main(int argc, char *argv[]) {
 			fillStruct(comp, r.base_type_id, dat, dat.self);
 
 			++i;
+		}
+
+		for (Resource &r : res.separate_images) {
+
+			u32 binding = comp.get_decoration(r.id, spv::DecorationBinding);
+			bool isWriteable = comp.get_decoration(r.id, spv::DecorationNonWritable) == 0U;
+
+			if (info.registers.size() <= binding)
+				info.registers.resize(binding + 1U);
+
+			ShaderRegister &reg = info.registers[binding];
+
+			if(reg.name == "")
+				reg = ShaderRegister(isWriteable ? ShaderRegisterType::Image : ShaderRegisterType::Texture2D, stageAccess, r.name);
+			else {
+
+				reg.access = reg.access.getValue() | stageAccess.getValue();
+
+				if (reg.access == ShaderRegisterAccess::Undefined)
+					return (int)Log::error("Invalid register access");
+			}
+
+		}
+
+		for (Resource &r : res.separate_samplers) {
+
+			u32 binding = comp.get_decoration(r.id, spv::DecorationBinding);
+
+			if (info.registers.size() <= binding)
+				info.registers.resize(binding + 1U);
+
+			ShaderRegister &reg = info.registers[binding];
+
+			if (reg.name == "")
+				reg = ShaderRegister(ShaderRegisterType::Sampler, stageAccess, r.name);
+			else {
+
+				reg.access = reg.access.getValue() | stageAccess.getValue();
+
+				if (reg.access == ShaderRegisterAccess::Undefined)
+					return (int)Log::error("Invalid register access");
+			}
+
 		}
 
 		b.deconstruct();
