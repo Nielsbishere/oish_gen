@@ -7,6 +7,8 @@
 
 #include <fstream>
 
+#pragma comment(lib, "Xinput.lib")
+
 using namespace oi;
 using namespace oi ::wc;
 using namespace oi::gc;
@@ -126,7 +128,7 @@ ShaderVBSection &insertSection(Vec2u buf, std::vector<ShaderVBSection> &sec) {
 	return sect;
 }
 
-void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObject &var) {
+void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObject *var) {
 
 	auto &type = comp.get_type(id);
 	
@@ -139,19 +141,22 @@ void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObje
 		obj.offset = (u32) comp.type_struct_member_offset(type, i);
 		obj.name = comp.get_member_name(id, i);
 
+		u32 varId = var == &info.self ? 0U : (u32)(var - info.elements.data()) + 1U;
+
 		if (mem.basetype == SPIRType::Struct) {
 
 			u32 size = (u32)comp.get_declared_struct_member_size(mem, i);
 
 			obj.length = size;
-			obj.arraySize = 1U;
+			obj.arraySize = mem.array.size() == 0 ? 1U : (u32) mem.array[0];
 			obj.format = TextureFormat::Undefined;
 
 			u32 objoff = (u32) info.elements.size();
 
-			info.push(obj, var);
+			info.push(obj, *var);
+			var = varId == 0 ? &info.self : info.elements.data() + varId - 1U;
 
-			fillStruct(comp, type.member_types[i], info, info.elements[objoff]);
+			fillStruct(comp, type.member_types[i], info, info.elements.data() + objoff);
 
 		} else {
 
@@ -159,7 +164,8 @@ void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObje
 			obj.arraySize = mem.columns;
 			obj.length = Graphics::getFormatSize(obj.format);
 
-			info.push(obj, var);
+			info.push(obj, *var);
+			var = varId == 0 ? &info.self : info.elements.data() + varId - 1U;
 		}
 	}
 
@@ -309,7 +315,7 @@ int main(int argc, char *argv[]) {
 			dat.self.offset = 0U;
 			dat.self.parent = nullptr;
 
-			fillStruct(comp, r.base_type_id, dat, dat.self);
+			fillStruct(comp, r.base_type_id, dat, &dat.self);
 
 			++i;
 		}
