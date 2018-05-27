@@ -5,23 +5,33 @@ First, you have to generate your shader code through the Khronos SPIR-V compiler
 `oish_gen.exe "%FULL_PATH_TO_SHADER_BASE%" "%SHADER_NAME%" %SHADER_EXTENSIONS%`  
 This requires you to use the same names for a path, except you distinguish them by .vert, .geom, .frag and .comp extensions. An example would be the following:  
 `oish_gen.exe "D:\programming\repos\ocore\app\res\shaders\simple" "simple" .vert .frag`  
-Which would require the files "simple.vert.spv" and "simple.frag.spv" to be available (within the shaders directory).
+Which would require the files "simple.vert.spv", "simple.vert.ospv", "simple.vert.spv" and "simple.frag.ospv" to be available (within the shaders directory). .spv is generated via Khronos's glslValidator and .ospv is the stripped version (so no debug information and fully optimized; generated via running spirv-opt and spirv-remap).
 ## Script in Osomi Graphics Core
 This is used in a script in Osomi Graphics Core to ensure that all shaders will be compiled into .oiSH format:
 ```bat
 @echo off
 call :treeProcess
-pause
 goto :eof
+
+:perShader
 
 rem Call oish_gen.exe on every shader that is found
 rem Will generate an .oiSH file from it
-:perShader
+
 echo Found a shader named %~1 with %~2 stages and id %~3
 set /a end=%~2-1
 set "args="%~dp0oish_gen.exe" "%~4" "%~1" !stages[0]!"
 for /l %%x in (1, 1, %end%) do set args=!args! !stages[%%x]!
-cmd /c %args%
+cmd /c "%args%"
+
+rem Remove all the .spv and .ospv files generated for this shader
+rem Since those are intermediate files
+
+for /l %%y in (0, 1, %end%) do (
+ del /F /Q "%~4!stages[%%y]!.ospv"
+ del /F /Q "%~4!stages[%%y]!.spv"
+)
+
 exit /b
 
 :treeProcess
@@ -37,8 +47,10 @@ for %%f in (*.vert *.frag *.comp *.geom) do (
 	"%VULKAN_SDK%/Bin/glslangValidator.exe" -V -e main "%%~ff" -o "%%~nf%%~xf.spv"
 	
 	rem Optimize shader source code and strip all reflection data from source
-	rem "%VULKAN_SDK%/Bin/spirv-remap.exe" --do-everything -i "%%~nf%%~xf.spv" -o ../shaders/
-	rem "%VULKAN_SDK%/Bin/spirv-opt.exe" -Os -O "%%~nf%%~xf.spv" -o "%%~nf%%~xf.spv"
+	"%VULKAN_SDK%/Bin/spirv-opt.exe" -Os -O "%%~nf%%~xf.spv" -o "%%~nf%%~xf.ospv"
+	"%VULKAN_SDK%/Bin/spirv-remap.exe" --do-everything -i "%%~nf%%~xf.ospv" -o ../shaders/
+	
+	rem Call 'perShader' if the shader name changes
 	
 	if NOT !name!==%%~nf (
 		if defined !name! (
