@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 
 	std::vector<String> names = { shaderName };
 
-	u32 j = 0;
+	u32 j = 0, k = 0;
 
 	//Open the extensions' spirv and parse their data
 	for (String &s : extensions) {
@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
 
 			String name = String(r.name).replaceLast("_ext", "");
 
-			info.bufferIds[i] = name;
+			info.bufferIds[k] = name;
 			ShaderBufferInfo &dat = info.buffer[name];
 
 			const SPIRType &btype = comp.get_type(r.base_type_id);
@@ -318,6 +318,7 @@ int main(int argc, char *argv[]) {
 			fillStruct(comp, r.base_type_id, dat, &dat.self);
 
 			++i;
+			++k;
 		}
 
 		for (Resource &r : res.separate_images) {
