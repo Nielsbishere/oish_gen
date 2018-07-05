@@ -139,7 +139,7 @@ void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObje
 		const SPIRType &mem = comp.get_type(type.member_types[i]);
 
 		obj.offset = (u32) comp.type_struct_member_offset(type, i);
-		obj.name = comp.get_member_name(id, i);
+		obj.name = comp.get_member_name(type.parent_type == 0 ? id : type.parent_type, i);
 
 		u32 varId = var == &info.self ? 0U : (u32)(var - info.elements.data()) + 1U;
 
