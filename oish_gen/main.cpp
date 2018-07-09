@@ -110,24 +110,6 @@ TextureFormat getFormat(SPIRType type) {
 
 }
 
-ShaderVBSection &insertSection(Vec2u buf, std::vector<ShaderVBSection> &sec) {
-
-	bool perInstance = (bool) buf.y;
-
-	if (sec.size() <= buf.x)
-		sec.resize(buf.x + 1U);
-
-	ShaderVBSection &sect = sec[buf.x];
-
-	if (sect.stride == 0)
-		sect.perInstance = perInstance;
-	
-	if (sect.perInstance != perInstance)
-		Log::throwError<ShaderVBSection, 0x0>("Couldn't be inserted; the type of a buffer section can't be changed to or from instance to or from attribute");
-
-	return sect;
-}
-
 void fillStruct(Compiler &comp, u32 id, ShaderBufferInfo &info, ShaderBufferObject *var) {
 
 	auto &type = comp.get_type(id);
@@ -230,22 +212,14 @@ int main(int argc, char *argv[]) {
 
 			u32 i = 0;
 
-			std::vector<ShaderVBSection> &sections = info.section;
-
 			//Convert the inputs from Resource (res.stage_inputs) to ShaderVBVar and ShaderVBSection
 			for (Resource &r : res.stage_inputs) {
 
 				Vec2u buf = getBufferInfo(vars[i].name = r.name);
 
-				ShaderVBSection &section = insertSection(buf, sections);
-
 				SPIRType type = comp.get_type_from_variable(r.id);
 				vars[i].type = getFormat(type);
 				u32 varSize = Graphics::getFormatSize(vars[i].type) * type.columns;
-				vars[i].offset = section.stride;
-				vars[i].buffer = buf.x;
-
-				section.stride += varSize;
 
 				vars[i].name = r.name;
 

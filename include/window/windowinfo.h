@@ -25,13 +25,15 @@ namespace oi {
 			Vec2u getSize() const;
 			Window *getParent() const;
 			WindowHandleExt *getParam() const;
+			bool isFullScreen() const;
 
-			void move(Vec2i newPos);
-			void resize(Vec2u newSize);
+			void toggleFullScreen();
+			void setFullScreen(bool fullScreen);
 
 			void focus();
 
 			bool isInFocus() const;
+			bool isMinimized() const;
 			u32 getVersion() const;
 
 			void _forceSize(Vec2u size);
@@ -46,7 +48,7 @@ namespace oi {
 			Vec2i position = {};
 			Vec2u size = {};
 			WindowAction pending;
-			bool inFocus;
+			bool inFocus, fullScreen = false, minimized = false;
 
 			u32 version;
 			String title;

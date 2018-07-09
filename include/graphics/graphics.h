@@ -24,6 +24,10 @@ namespace oi {
 		class ShaderBuffer;
 		class Sampler;
 		class Camera;
+		class MeshBuffer;
+		class Mesh;
+		class DrawList;
+		class VersionedTexture;
 
 		class GraphicsObject;
 
@@ -38,6 +42,10 @@ namespace oi {
 		struct ShaderBufferInfo;
 		struct SamplerInfo;
 		struct CameraInfo;
+		struct MeshBufferInfo;
+		struct MeshInfo;
+		struct DrawListInfo;
+		struct VersionedTextureInfo;
 
 		enum class TextureFormatStorage;
 
@@ -49,7 +57,7 @@ namespace oi {
 		DEnum(FillMode, u32, Fill = 0, Line = 1, Point = 2);
 		DEnum(CullMode, u32, None = 0, Back = 1, Front = 2);
 		DEnum(WindMode, u32, CCW = 0, CW = 1);
-		DEnum(DepthMode, u32, None = 0, DepthTestOnly = 1, DepthWriteOnly = 2, All = 3);
+		DEnum(DepthMode, u32, None = 0, Depth_test = 1, Depth_write = 2, All = 3);
 		DEnum(BlendMode, u32, Off = 0, Alpha = 1, Add = 2, Subtract = 3);
 
 		class Graphics {
@@ -60,7 +68,7 @@ namespace oi {
 			
 			~Graphics();
 			
-			void init(oi::wc::Window *w, u32 buffering = 3U);
+			void init(oi::wc::Window *w);
 			
 			void initSurface(oi::wc::Window *w);							//Inits surface & backbuffer
 			void destroySurface();											//Destroys surface & backBuffer
@@ -69,17 +77,21 @@ namespace oi {
 			void end();
 			void finish();
 
-			Texture *create(TextureInfo info);
-			RenderTarget *create(RenderTargetInfo info);
-			CommandList *create(CommandListInfo info);
-			Shader *create(ShaderInfo info);
-			ShaderStage *create(ShaderStageInfo info);
-			Pipeline *create(PipelineInfo info);
-			PipelineState *create(PipelineStateInfo info);
-			GBuffer *create(GBufferInfo info);
-			ShaderBuffer *create(ShaderBufferInfo info);
-			Sampler *create(SamplerInfo info);
-			Camera *create(CameraInfo info);
+			Texture *create(String name, TextureInfo info);
+			RenderTarget *create(String name, RenderTargetInfo info);
+			CommandList *create(String name, CommandListInfo info);
+			Shader *create(String name, ShaderInfo info);
+			ShaderStage *create(String name, ShaderStageInfo info);
+			Pipeline *create(String name, PipelineInfo info);
+			PipelineState *create(String name, PipelineStateInfo info);
+			GBuffer *create(String name, GBufferInfo info);
+			ShaderBuffer *create(String name, ShaderBufferInfo info);
+			Sampler *create(String name, SamplerInfo info);
+			Camera *create(String name, CameraInfo info);
+			MeshBuffer *create(String name, MeshBufferInfo info);
+			Mesh *create(String name, MeshInfo info);
+			DrawList *create(String name, DrawListInfo info);
+			VersionedTexture *create(String name, VersionedTextureInfo info);
 
 			GraphicsExt &getExtension();
 
@@ -87,11 +99,14 @@ namespace oi {
 			static u32 getChannelSize(TextureFormat format);						//Returns size of one channel in bytes
 			static u32 getChannels(TextureFormat format);							//Returns number of channels
 			static u32 getFormatSize(TextureFormat format);							//Returns size of pixel
-			static TextureFormatStorage getFormatStorage(TextureFormat format);
+			static TextureFormatStorage getFormatStorage(TextureFormat format);		//The type of a texture (float, uint, int)
+			static bool isCompatible(TextureFormat a, TextureFormat b);				//Textures are compatible if they match channels and format storage
 
 			static Vec4d convertColor(Vec4d color, TextureFormat format);			//Convert color to the correct params
 
 			RenderTarget *getBackBuffer();
+			u32 getBuffering();
+			void printObjects();
 
 			bool contains(GraphicsObject *go) const;
 			bool destroy(GraphicsObject *go);
@@ -103,10 +118,10 @@ namespace oi {
 		protected:
 
 			template<typename T>
-			size_t add(T *t);
+			void add(T *t);
 
 			template<typename T, typename TInfo>
-			T *init(TInfo info);
+			T *init(String name, TInfo info);
 
 			bool remove(GraphicsObject *go);
 
@@ -124,7 +139,7 @@ namespace oi {
 		
 
 		template<typename T>
-		size_t Graphics::add(T *t) {
+		void Graphics::add(T *t) {
 
 			static_assert(std::is_base_of<GraphicsObject, T>::value, "Graphics::add is only available to GraphicsObjects");
 
@@ -136,7 +151,6 @@ namespace oi {
 			if (it != o.end()) Log::warn("Graphics::add called on an already existing object");
 			else o.push_back(t);
 
-			return id;
 		}
 
 		template<typename T>
@@ -153,14 +167,18 @@ namespace oi {
 		}
 
 		template<typename T, typename TInfo>
-		T *Graphics::init(TInfo info) {
+		T *Graphics::init(String name, TInfo info) {
+
 			T *t = new T(info);
 			t->g = this;
+
+			t->name = name;
+			t->template setHash<T>();
 
 			if (!t->init())
 				return (T*) Log::throwError<Graphics, 0xB>("Couldn't init GraphicsObject");
 
-			t->hash = add(t);
+			add(t);
 			return t;
 		}
 

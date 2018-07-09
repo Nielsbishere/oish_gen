@@ -56,14 +56,19 @@ namespace oi {
 		enum class TextureFormatStorage {
 			INT,
 			UINT,
-			FLOAT
+			FLOAT,
+			DOUBLE
 		};
 
 		DEnum(TextureLoadFormat, u32, Undefined = 0,
 			R8 = 1,
 			RG8 = 2,
 			RGB8 = 3,
-			RGBA8 = 4
+			RGBA8 = 4,
+			sR8 = 5,
+			sRG8 = 6,
+			sRGB8 = 7,
+			sRGBA8 = 8
 		);
 
 		struct TextureInfo {
@@ -79,7 +84,7 @@ namespace oi {
 			u32 mipLevels = 1U;													//Automatic detection. No need to set it
 
 			TextureInfo(Vec2u res, TextureFormat format, TextureUsage usage) : res(res), format(format), usage(usage) {}
-			TextureInfo(String path, TextureLoadFormat loadFormat = TextureLoadFormat::RGBA8) : path(path), usage(TextureUsage::Image), loadFormat(loadFormat), format(loadFormat.getName()) {}
+			TextureInfo(String path, TextureLoadFormat loadFormat = TextureLoadFormat::sRGBA8) : path(path), usage(TextureUsage::Image), loadFormat(loadFormat), format(loadFormat.getName()) {}
 		};
 
 		class Texture : public GraphicsResource {

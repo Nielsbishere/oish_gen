@@ -55,6 +55,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(VULKAN_SDK)/Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__VULKAN__;__WINDOWS__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/MTd %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ostlcd.lib;owcd.lib;ogcd.lib;vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -69,6 +70,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(VULKAN_SDK)/Include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__VULKAN__;__WINDOWS__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/MT %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

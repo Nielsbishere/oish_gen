@@ -32,7 +32,6 @@ namespace oi {
 			void *getSurfaceData();
 			u32 getSurfaceSize();
 
-			void pause(bool pause = true);
 			bool hasPreviousFrame();
 
 		protected:
@@ -54,7 +53,7 @@ namespace oi {
 			InputHandler inputHandler;
 			InputManager inputManager;
 			WindowInterface *wi = nullptr;
-			bool initialized = false, isPaused = false, wasPaused = false, configChanged = false;
+			bool initialized = false, hasPrevFrame = false;
 			u32 finalizeCount = 0;
 
 			flp lastTick = (flp) 0;

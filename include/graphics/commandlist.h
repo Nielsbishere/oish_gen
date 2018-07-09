@@ -12,6 +12,9 @@ namespace oi {
 		class RenderTarget;
 		class Pipeline;
 		class GBuffer;
+		class MeshBuffer;
+		class Mesh;
+		class DrawList;
 
 		struct CommandListInfo { };
 
@@ -39,13 +42,17 @@ namespace oi {
 			void end(RenderTarget *target);
 
 			void bind(Pipeline *pipeline);
-			bool bind(std::vector<GBuffer*> buffers);
-			void draw(u32 vertices, u32 instances = 1U, u32 startVertex = 0U, u32 startInstance = 0U);
-			void drawIndexed(u32 indices, u32 instances = 1U, u32 startIndex = 0U, u32 startVertex = 0U, u32 startInstance = 0U);
+			bool bind(MeshBuffer *meshBuffer);
+			void draw(Mesh *mesh, u32 instances = 1U);
+			void draw(DrawList *drawList);
 
 			CommandListExt &getExtension();
 
 		protected:
+
+			bool bind(std::vector<GBuffer*> vertices, GBuffer *indices = nullptr);
+			void draw(u32 vertices, u32 instances = 1U, u32 startVertex = 0U, u32 startInstance = 0U);
+			void drawIndexed(u32 indices, u32 instances = 1U, u32 startIndex = 0U, u32 startVertex = 0U, u32 startInstance = 0U);
 
 			~CommandList();
 			CommandList(CommandListInfo info);

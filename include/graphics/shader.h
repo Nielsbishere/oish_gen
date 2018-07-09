@@ -18,7 +18,6 @@ namespace oi {
 			std::vector<ShaderStage*> stage;
 			std::vector<ShaderStageInfo> stages;
 
-			std::vector<ShaderVBSection> section;
 			std::vector<ShaderVBVar> var;
 			std::vector<ShaderOutput> output;
 			std::vector<ShaderRegister> registers;
@@ -73,7 +72,7 @@ namespace oi {
 			auto it = info.shaderRegister.find(path);
 
 			if (it == info.shaderRegister.end())
-				return (T*) Log::throwError<Shader, 0x1>(String("Shader::get<T>(") + path + ") failed; invalid path");
+				return nullptr;
 			
 			return dynamic_cast<T*>(it->second);
 
